@@ -5,31 +5,21 @@ import json
 import time
 
 
-def get_taskmanager_resource():
-    pod_resource = subprocess.Popen("kubectl top pods", stdout=subprocess.PIPE, shell=True).communicate()
-    resource = str(pod_resource[0])
-    taskmanager_index = resource.index('taskmanager')
-    # print(taskmanager_index)
-
-    taskmanager_memory_index = resource.index('Mi', taskmanager_index + 11)
-    # print(task_manager_memory_index)
-    taskmanager_memory_value_index = resource[0:taskmanager_memory_index].rindex(' ') + 1
-    taskmanager_memory_value = resource[taskmanager_memory_value_index:taskmanager_memory_index]
-
-    taskmanager_cpu_index = resource.index('m', taskmanager_index + 11)
-    # print(task_manager_memory_index)
-    taskmanager_cpu_value_index = resource[0:taskmanager_cpu_index].rindex(' ') + 1
-    taskmanager_cpu_value = resource[taskmanager_cpu_value_index:taskmanager_cpu_index]
-
-    return taskmanager_cpu_value, taskmanager_memory_value
-
-
-def restart(cpu, memory):
+def restart(cpu, memory, slot):
     subprocess.Popen("kubectl delete deployment/my-first-flink-cluster", stdout=subprocess.PIPE, shell=True).communicate()
     set_taskmanager_memory(memory)
+    set_taskmanager_slots(slot)
     subprocess.Popen("./bin/kubernetes-session.sh -Dkubernetes.cluster-id=my-first-flink-cluster "
                     "-Dkubernetes.taskmanager.cpu=%s" % (cpu,), stdout=subprocess.PIPE, shell=True).communicate()
     return
+
+
+def get_pod_resource_load(base_url, pod_name):
+    url = base_url + "apis/metrics.k8s.io/v1beta1/namespaces/default/pods/" + pod_name
+    response = requests.get(url)
+    cpu = json.dumps(response.json()["containers"][0]["usage"]["cpu"])
+    memory = json.dumps(response.json()["containers"][0]["usage"]["memory"])
+    return cpu[1:len(cpu)-1], memory[1:len(memory)-1]
 
 
 def set_taskmanager_memory(memory):
@@ -38,6 +28,18 @@ def set_taskmanager_memory(memory):
         for line in f.readlines():
             if line.find('taskmanager.memory.process.size:') == 0:
                 line = 'taskmanager.memory.process.size: %sm' % (memory,) + '\n'
+            data += line
+    with open('/home/yuan/flink/conf/flink-conf.yaml', 'r+') as f:
+        f.writelines(data)
+    return
+
+
+def set_taskmanager_slots(slot):
+    data = ''
+    with open('/home/yuan/flink/conf/flink-conf.yaml', 'r+') as f:
+        for line in f.readlines():
+            if line.find('taskmanager.numberOfTaskSlots:') == 0:
+                line = 'taskmanager.numberOfTaskSlots: %s' % (slot,) + '\n'
             data += line
     with open('/home/yuan/flink/conf/flink-conf.yaml', 'r+') as f:
         f.writelines(data)
@@ -139,9 +141,8 @@ def get_all_taskmanagers_overview(base_url):
 
 def main():
     pod_status = subprocess.Popen("kubectl get pods -A", stdout=subprocess.PIPE, shell=True).communicate()
-    task_manager_cpu_value, task_manager_memory_value = get_task_manager_resource()
-    print(task_manager_cpu_value, task_manager_memory_value)
-    base_url = "http://localhost:8081/"
+    k8s_base_url = "http://localhost:8080/"
+    flink_base_url = "http://localhost:8081/"
     path = "/home/yuan/flink/examples/streaming/SessionWindowing.jar"
 
 
