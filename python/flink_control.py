@@ -3,6 +3,61 @@ import requests
 import os
 import json
 import time
+import numpy as np
+
+
+class Control:
+    def __init__(self):
+        self.cpu = 0.1
+        self.memory = 1000
+        self.slot = 10
+
+    def step(self, input_actions):  # unfinished
+
+        if sum(input_actions) != 1:
+            raise ValueError('Multiple input actions!')
+
+        if input_actions[1] == 1:
+            self.cpu += 0.02
+            restart(self.cpu, self.memory, self.slot)
+        if input_actions[2] == 1:  # check cpu > 0
+            self.cpu -= 0.02
+            restart(self.cpu, self.memory, self.slot)
+        if input_actions[3] == 1:
+            self.memory += 200
+            restart(self.cpu, self.memory, self.slot)
+        if input_actions[4] == 1:  # check memory > 0
+            self.memory -= 200
+            restart(self.cpu, self.memory, self.slot)
+        if input_actions[5] == 1:
+            self.slot += 2
+            restart(self.cpu, self.memory, self.slot)
+        if input_actions[6] == 1:  # check slot > 0
+            self.slot -= 2
+            restart(self.cpu, self.memory, self.slot)
+        # if input_actions[7] == 1:
+
+        reward = get_reward(input_actions, get_performance())
+        observation = 0  # data for test
+        terminal = False  # data for test
+        return observation, reward, terminal
+
+
+def get_reward(input_actions, performance):  # for test
+    total_reward = sum(input_actions[1:6]) + input_actions[7] * 0.1
+    for i in range(len(performance)):
+        total_reward += i * 0.1 + 0.1
+    return total_reward
+
+
+def get_performance():  # unfinished
+    delay = np.zeros(15)  # data for test
+    return delay
+
+
+def get_observation():  # unfinished
+    observation = np.zeros(15, 15)  # data for test
+    return observation
 
 
 def restart(cpu, memory, slot):
