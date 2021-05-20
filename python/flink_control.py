@@ -38,7 +38,7 @@ class Control:
         # if input_actions[7] == 1:
 
         reward = get_reward(input_actions, get_performance())
-        observation = 0  # data for test
+        observation = np.zeros((80,80))  # data for test
         terminal = False  # data for test
         return observation, reward, terminal
 

@@ -1,4 +1,5 @@
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 import random
 from collections import deque
@@ -44,8 +45,8 @@ class BrainDQN:
         b_fc2 = self.bias_variable([self.actions])
 
         # input layer
-
-        self.stateInput = tf.placeholder("float", [None, 80, 80, 4])
+        tf.compat.v1.disable_eager_execution()
+        self.stateInput = tf.compat.v1.placeholder("float", [None, 80, 80, 4])
 
         # hidden layers
         h_conv1 = tf.nn.relu(self.conv2d(self.stateInput, W_conv1, 4) + b_conv1)
@@ -61,16 +62,16 @@ class BrainDQN:
         # Q Value layer
         self.QValue = tf.matmul(h_fc1, W_fc2) + b_fc2
 
-        self.actionInput = tf.placeholder("float", [None, self.actions])
-        self.yInput = tf.placeholder("float", [None])
-        Q_action = tf.reduce_sum(tf.mul(self.QValue, self.actionInput), reduction_indices=1)
+        self.actionInput = tf.compat.v1.placeholder("float", [None, self.actions])
+        self.yInput = tf.compat.v1.placeholder("float", [None])
+        Q_action = tf.reduce_sum(tf.multiply(self.QValue, self.actionInput), axis=1)
         self.cost = tf.reduce_mean(tf.square(self.yInput - Q_action))
-        self.trainStep = tf.train.AdamOptimizer(1e-6).minimize(self.cost)
+        self.trainStep = tf.compat.v1.train.AdamOptimizer(1e-6).minimize(self.cost)
 
         # saving and loading networks
-        self.saver = tf.train.Saver()
-        self.session = tf.InteractiveSession()
-        self.session.run(tf.initialize_all_variables())
+        self.saver = tf.compat.v1.train.Saver()
+        self.session = tf.compat.v1.InteractiveSession()
+        self.session.run(tf.compat.v1.initialize_all_variables())
         checkpoint = tf.train.get_checkpoint_state("saved_networks")
         if checkpoint and checkpoint.model_checkpoint_path:
             self.saver.restore(self.session, checkpoint.model_checkpoint_path)
@@ -143,7 +144,7 @@ class BrainDQN:
         self.currentState = np.stack((observation, observation, observation, observation), axis=2)
 
     def weight_variable(self, shape):
-        initial = tf.truncated_normal(shape, stddev=0.01)
+        initial = tf.random.truncated_normal(shape, stddev=0.01)
         return tf.Variable(initial)
 
     def bias_variable(self, shape):

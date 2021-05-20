@@ -18,7 +18,9 @@ def adjust():
     while 1 != 0:
         action = brain.getAction()
         nextObservation, reward, terminal = flink.step(action)
+        nextObservation = np.reshape(nextObservation, (80, 80, 1))
         brain.setPerception(nextObservation, action, reward, terminal)
+        time.sleep(5)
 
 
 def main():
